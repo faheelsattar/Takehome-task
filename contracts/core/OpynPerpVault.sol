@@ -218,15 +218,15 @@ contract OpynPerpVault is ERC20, ReentrancyGuard, Ownable {
      * @param minEcrv minimum amount of ecrv to get out from adding liquidity.
      */
     function depositETH(uint256 minEcrv) external payable nonReentrant {
-        // notEmergency();
+        // notEmergency(); //removing it for the sake of saving on function call cost for expensive function
         require(state != VaultState.Emergency, "O2");
-        // actionsInitialized();
+        // actionsInitialized(); //removing it for the sake of saving on function call cost for expensive function
         require(actions.length > 0, "O1");
 
         require(msg.value > 0, "O6");
 
         // the sdecrv is already deposited into the contract at this point, need to substract it from total
-        uint256[2] memory amounts = [msg.value, 0]; //$GAS: initialize with value inorder to prevent an override from 0 to something
+        uint256[2] memory amounts = [msg.value, 0]; //$GAS: initialize with value inorder to prevent an override from 0
 
         // deposit ETH to curvePool
         curvePool.add_liquidity{value: msg.value}(amounts, minEcrv);
@@ -262,9 +262,9 @@ contract OpynPerpVault is ERC20, ReentrancyGuard, Ownable {
      * @param _share is the number of vault shares to be burned
      */
     function withdrawETH(uint256 _share, uint256 minEth) external nonReentrant {
-        // notEmergency();
+        // notEmergency(); //removing it for the sake of saving on function call cost for expensive function
         require(state != VaultState.Emergency, "O2");
-        // actionsInitialized();
+        // actionsInitialized(); //removing it for the sake of saving on function call cost for expensive function
         require(actions.length > 0, "O1");
 
         uint256 currentSdecrvBalance = _balance();
@@ -306,15 +306,16 @@ contract OpynPerpVault is ERC20, ReentrancyGuard, Ownable {
         require(state == VaultState.Locked, "O11");
         state = VaultState.Unlocked;
 
-        for (uint256 i = 0; i < actions.length; i = i + 1) {
+        address[] memory vaults = actions; //saves sload on each iter
+        for (uint256 i = 0; i < vaults.length; i++) {
             // 1. close position. this should revert if any position is not ready to be closed.
-            IAction(actions[i]).closePosition();
+            IAction(vaults[i]).closePosition();
 
             // 2. withdraw sdecrv
-            uint256 actionBalance = IERC20(sdecrvAddress).balanceOf(actions[i]);
+            uint256 actionBalance = IERC20(sdecrvAddress).balanceOf(vaults[i]);
             if (actionBalance > 0) {
                 IERC20(sdecrvAddress).safeTransferFrom(
-                    actions[i],
+                    vaults[i],
                     address(this),
                     actionBalance
                 );
@@ -341,7 +342,7 @@ contract OpynPerpVault is ERC20, ReentrancyGuard, Ownable {
         // keep track of total percentage to make sure we're summing up to 100%
         uint256 sumPercentage = withdrawReserve;
 
-        for (uint256 i = 0; i < _allocationPercentages.length; i = i + 1) {
+        for (uint256 i = 0; i < _allocationPercentages.length; i++) {
             sumPercentage = sumPercentage.add(_allocationPercentages[i]);
             require(sumPercentage <= BASE, "O14");
 
@@ -392,9 +393,10 @@ contract OpynPerpVault is ERC20, ReentrancyGuard, Ownable {
      * @dev set the state to "Emergency", which disable all withdraw and deposit
      */
     function emergencyPause() external onlyOwner {
-        require(state != VaultState.Emergency, "O17");
+        VaultState initState = state; //memoize to an extra sload
+        require(initState != VaultState.Emergency, "O17");
 
-        stateBeforePause = state;
+        stateBeforePause = initState;
         state = VaultState.Emergency;
 
         emit StateUpdated(VaultState.Emergency);
@@ -444,7 +446,6 @@ contract OpynPerpVault is ERC20, ReentrancyGuard, Ownable {
         uint256 _totalAssetAmount
     ) internal view returns (uint256) {
         uint256 shareSupply = totalSupply();
-
         // share amount
         return
             shareSupply == 0
