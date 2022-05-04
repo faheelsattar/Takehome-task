@@ -132,7 +132,7 @@ describe('OpynPerpVault Tests', function () {
       ).to.be.revertedWith('O16');
 
       await vault.connect(owner).setWithdrawReserve(1000);
-      expect((await vault.withdrawReserve()).toNumber() == 1000).to.be.true;
+      expect((await vault.withdrawReserve()) == 1000).to.be.true;
     });
 
     it('should revert an addrress other than curve tries to send ETH to the vault', async () => {
