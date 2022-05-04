@@ -1,0 +1,21 @@
+DEPOSIT GAS COMPARISION : 
+old gas cost: 189851
+new gas cost: 181954
+
+percentage saved: 4.2%
+
+After optimizations:
+on 100 gwei it will cost around  = 56$
+on 40 gwei it will cost around = 21$
+
+-------------------------------------------
+
+WITHDRAW GAS COMPARISION : 
+old gas cost: 152138
+new gas cost: 143378
+
+percentage saved: 5.8%
+
+After optimizations:
+on 100 gwei it will cost around  = 44$
+on 40 gwei it will cost around = 17$
